@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -10,6 +9,8 @@ using pdftron.SDF;
 using System.Web.Http;
 using pdftron.Filters;
 using pdftron;
+using pdftron.PDF.PDFA;
+using System.Text;
 
 namespace FunctionPdf
 {
@@ -613,5 +614,104 @@ namespace FunctionPdf
                 return new InternalServerErrorResult();
             }
         }
+
+		[FunctionName("PdfATest")]
+		public static IActionResult PdfATest(
+	[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+	ExecutionContext context,
+	ILogger log)
+		{
+			PDFNet.Initialize();
+			PDFNet.SetColorManagement(PDFNet.CMSType.e_lcms);  // Required for PDFA validation
+
+			// Relative path to the folder containing test files.
+			string input_path = context.FunctionAppDirectory + "\\TestFiles\\";
+
+			//-----------------------------------------------------------
+			// Example 1: PDF/A Validation
+			//-----------------------------------------------------------
+			try
+			{
+				string filename = "newsletter.pdf";
+				using (PDFACompliance pdf_a = new PDFACompliance(false, input_path + filename, null, PDFACompliance.Conformance.e_Level2B, null, 10, false))
+				{
+					PrintResults(pdf_a, filename, log);
+				}
+			}
+			catch (pdftron.Common.PDFNetException e)
+			{
+				log.LogError(e.Message);
+			}
+
+			//-----------------------------------------------------------
+			// Example 2: PDF/A Conversion
+			//-----------------------------------------------------------
+			try
+			{
+				byte[] bytes;
+				string filename = "fish.pdf";
+				using (PDFACompliance pdf_a = new PDFACompliance(true, input_path + filename, null, PDFACompliance.Conformance.e_Level2B, null, 10, false))
+				{
+					bytes = pdf_a.SaveAs(false);
+				}
+
+				// Re-validate the document after the conversion...
+				filename = "pdfa.pdf";
+				using (PDFACompliance pdf_a = new PDFACompliance(false, bytes, null, PDFACompliance.Conformance.e_Level2B, null, 10, false))
+				{
+					PrintResults(pdf_a, filename, log);
+				}
+
+				return new FileContentResult(bytes, "application/pdf");
+			}
+			catch (pdftron.Common.PDFNetException e)
+			{
+				log.LogError(e.Message);
+			}
+
+			return new InternalServerErrorResult();
+
+			static void PrintResults(PDFACompliance pdf_a, string filename, ILogger log)
+			{
+				var sb = new StringBuilder();
+
+				int err_cnt = pdf_a.GetErrorCount();
+				if (err_cnt == 0)
+				{
+					sb.AppendFormat("{0}: OK.", filename);
+					sb.AppendLine();
+				}
+				else
+				{
+					sb.AppendFormat("{0} is NOT a valid PDFA.", filename);
+					sb.AppendLine();
+					for (int i = 0; i < err_cnt; ++i)
+					{
+						PDFACompliance.ErrorCode c = pdf_a.GetError(i);
+						sb.AppendFormat(" - e_PDFA {0}: {1}.",
+							(int)c, PDFACompliance.GetPDFAErrorMessage(c));
+						sb.AppendLine();
+
+						if (true)
+						{
+							int num_refs = pdf_a.GetRefObjCount(c);
+							if (num_refs > 0)
+							{
+								sb.Append("   Objects: ");
+								for (int j = 0; j < num_refs;)
+								{
+									sb.AppendFormat("{0}", pdf_a.GetRefObj(c, j));
+									if (++j != num_refs) sb.Append(", ");
+								}
+								sb.AppendLine();
+							}
+						}
+					}
+					sb.AppendLine();
+				}
+
+				log.LogInformation(sb.ToString());
+			}
+		}
 	}
 }
