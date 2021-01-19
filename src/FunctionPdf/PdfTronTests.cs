@@ -14,8 +14,8 @@ using System.Text;
 
 namespace FunctionPdf
 {
-    public static class PdfTronTests
-    {
+	public static class PdfTronTests
+	{
 		[FunctionName("AddImageTest")]
 		public static IActionResult AddImageTest(
 			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
@@ -140,11 +140,11 @@ namespace FunctionPdf
 		}
 
 		[FunctionName("ElementBuilderTest")]
-        public static IActionResult ElementBuilderTest(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
-            ExecutionContext context,
-            ILogger log)
-        {
+		public static IActionResult ElementBuilderTest(
+			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+			ExecutionContext context,
+			ILogger log)
+		{
 			PDFNet.Initialize();
 
 			// Relative path to the folder containing test files.
@@ -605,15 +605,15 @@ namespace FunctionPdf
 					// Save as a linearized file which is most popular  
 					// and effective format for quick PDF Viewing.
 					var bytes = doc.Save(SDFDoc.SaveOptions.e_linearized);
-                    return new FileContentResult(bytes, "application/pdf");
-                }
-            }
-            catch (PDFNetException e)
-            {
-                log.LogInformation(e.Message);
-                return new InternalServerErrorResult();
-            }
-        }
+					return new FileContentResult(bytes, "application/pdf");
+				}
+			}
+			catch (PDFNetException e)
+			{
+				log.LogInformation(e.Message);
+				return new InternalServerErrorResult();
+			}
+		}
 
 		[FunctionName("PdfATest")]
 		public static IActionResult PdfATest(
@@ -711,6 +711,100 @@ namespace FunctionPdf
 				}
 
 				log.LogInformation(sb.ToString());
+			}
+		}
+
+		[FunctionName("FlattenAnnotationTest")]
+		public static IActionResult FlattenAnnotationTest(
+			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+			ExecutionContext context,
+			ILogger log)
+		{
+			PDFNet.Initialize();
+
+			// Relative path to the folder containing test files.
+			string input_path = context.FunctionAppDirectory + "\\TestFiles\\";
+
+			try
+			{
+				using (PDFDoc doc = new PDFDoc(input_path + "numbered.pdf"))
+				{
+					doc.InitSecurityHandler();
+
+					// An example of using SDF/Cos API to add any type of annotations.
+					AnnotationLowLevelAPI(doc);
+
+					// Flatten the annotations.
+					doc.FlattenAnnotations();
+
+					var bytes = doc.Save(SDFDoc.SaveOptions.e_linearized);
+					return new FileContentResult(bytes, "application/pdf");
+				}
+			}
+			catch (PDFNetException e)
+			{
+				log.LogError(e.Message);
+				return new InternalServerErrorResult();
+			}
+
+			static void AnnotationLowLevelAPI(PDFDoc doc)
+			{
+				Page page = doc.GetPage(1);
+
+				Obj annots = page.GetAnnots();
+				if (annots == null)
+				{
+					// If there are no annotations, create a new annotation 
+					// array for the page.
+					annots = doc.CreateIndirectArray();
+					page.GetSDFObj().Put("Annots", annots);
+				}
+
+				// Create the Text annotation
+				Obj text_annot = doc.CreateIndirectDict();
+				text_annot.PutName("Subtype", "Text");
+				text_annot.PutBool("Open", true);
+				text_annot.PutString("Contents", "The quick brown fox ate the lazy mouse.");
+				text_annot.PutRect("Rect", 266, 116, 430, 204);
+
+				// Insert the annotation in the page annotation array
+				annots.PushBack(text_annot);
+
+				// Create a Link annotation
+				Obj link1 = doc.CreateIndirectDict();
+				link1.PutName("Subtype", "Link");
+				Destination dest = Destination.CreateFit(doc.GetPage(2));
+				link1.Put("Dest", dest.GetSDFObj());
+				link1.PutRect("Rect", 85, 705, 503, 661);
+				annots.PushBack(link1);
+
+				// Create another Link annotation
+				Obj link2 = doc.CreateIndirectDict();
+				link2.PutName("Subtype", "Link");
+				Destination dest2 = Destination.CreateFit(doc.GetPage(3));
+				link2.Put("Dest", dest2.GetSDFObj());
+				link2.PutRect("Rect", 85, 638, 503, 594);
+				annots.PushBack(link2);
+
+				// Note that PDFNet APi can be used to modify existing annotations. 
+				// In the following example we will modify the second link annotation 
+				// (link2) so that it points to the 10th page. We also use a different 
+				// destination page fit type.
+
+				link2.Put("Dest",
+					Destination.CreateXYZ(doc.GetPage(10), 100, 792 - 70, 10).GetSDFObj());
+
+				// Create a third link annotation with a hyperlink action (all other 
+				// annotation types can be created in a similar way)
+				Obj link3 = doc.CreateIndirectDict();
+				link3.PutName("Subtype", "Link");
+				link3.PutRect("Rect", 85, 570, 503, 524);
+
+				// Create a URI action
+				Obj action = link3.PutDict("A");
+				action.PutName("S", "URI");
+				action.PutString("URI", "http://www.pdftron.com");
+				annots.PushBack(link3);
 			}
 		}
 	}

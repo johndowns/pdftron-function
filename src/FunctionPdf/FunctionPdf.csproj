@@ -42,6 +42,9 @@
     <None Update="TestFiles\newsletter.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestFiles\numbered.pdf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestFiles\palm.jp2">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
