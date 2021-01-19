@@ -9,6 +9,7 @@ using pdftron.PDF;
 using pdftron.SDF;
 using System.Web.Http;
 using pdftron.Filters;
+using pdftron;
 
 namespace FunctionPdf
 {
@@ -20,9 +21,10 @@ namespace FunctionPdf
 			ExecutionContext context,
 			ILogger log)
 		{
+			PDFNet.Initialize();
+
 			// Relative path to the folder containing test files.
 			string input_path = context.FunctionAppDirectory + "\\TestFiles\\";
-			log.LogInformation(input_path);
 
 			try
 			{
@@ -142,9 +144,10 @@ namespace FunctionPdf
             ExecutionContext context,
             ILogger log)
         {
-            // Relative path to the folder containing test files.
-            string input_path = context.FunctionAppDirectory + "\\TestFiles\\";
-            log.LogInformation(input_path);
+			PDFNet.Initialize();
+
+			// Relative path to the folder containing test files.
+			string input_path = context.FunctionAppDirectory + "\\TestFiles\\";
 
 			try
 			{
@@ -610,5 +613,5 @@ namespace FunctionPdf
                 return new InternalServerErrorResult();
             }
         }
-    }
+	}
 }
