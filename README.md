@@ -4,11 +4,14 @@ This sample demonstrates how to use an Azure Function (written in C#/.NET Core 3
 
 ## Sample scenarios
 
-The sample Azure Functions app has two functions, each corresponding to a documented PDFTron sample:
+The sample Azure Functions app has three functions, each corresponding to a documented PDFTron sample:
  * `AddImageTest` is based on the [`AddImage` sample](https://www.pdftron.com/documentation/samples/dotnetcore/cs/AddImageTest?platforms=dotnetcore). This illustrates how to embed images into PDF files.
  * `ElementBuilderTest` is based on the [`ElementBuilder` sample](https://www.pdftron.com/documentation/samples/dotnetcore/cs/ElementBuilderTest?platforms=dotnetcore). This illustrates how to use custom fonts, images, and other advanced PDF features.
+ * `PdfATest` is based on the [`PdfA` sample](https://www.pdftron.com/documentation/samples/dotnetcore/cs/PDFATest?platforms=dotnetcore). This illustrates how to validate a PDF/A file, and convert a PDF file to a PDF/A file.
 
 You should test your own specific scenarios to ensure they work correctly within the Azure Functions sandbox.
+
+The functions are deployed with HTTP triggers, and the samples have been slightly modified to return the result to the HTTP response stream (rather than saving to a local file system), and to send the output to the Azure Functions logger instead of the console.
 
 ## Function app 
 This sample requires that you use one of the following Azure Functions hosting options:
