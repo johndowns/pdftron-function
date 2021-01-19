@@ -617,9 +617,9 @@ namespace FunctionPdf
 
 		[FunctionName("PdfATest")]
 		public static IActionResult PdfATest(
-	[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
-	ExecutionContext context,
-	ILogger log)
+			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+			ExecutionContext context,
+			ILogger log)
 		{
 			PDFNet.Initialize();
 			PDFNet.SetColorManagement(PDFNet.CMSType.e_lcms);  // Required for PDFA validation
